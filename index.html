@@ -101,6 +101,15 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <!-- Leaflet Map CSS & JS (Fallback interactive map engine) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    window.RAZORPAY_KEY_ID = '';
+    window.GOOGLE_MAPS_API_KEY = '';
+  </script>
+
 
   <style>
     :root {
@@ -663,6 +672,9 @@
   </nav>
 
   <div class="header-actions">
+    <button class="btn-action-badge" onclick="openQrScanModal()" title="Scan Order QR Code">
+      📷 Scan QR
+    </button>
     <button class="btn-action-badge" onclick="handleMyOrdersClick()">
       📦 My Orders
     </button>
@@ -958,12 +970,17 @@
             <div class="form-group"><label>Full Address *</label><textarea id="chkAddress" required rows="2" placeholder="House, Road, Ward"></textarea></div>
             <div class="form-group"><label>Landmark</label><input type="text" id="chkLandmark" placeholder="Near Temple"></div>
 
-            <!-- ══ LIVE LOCATION ══ -->
+            <!-- ══ LIVE LOCATION & GOOGLE MAP PICKER ══ -->
             <div class="form-group" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7); border:1.5px solid #86efac; border-radius:12px; padding:14px; margin-top:6px;">
-              <label style="color:#15803d; font-weight:700; font-size:0.88rem;">📍 Share Your Live Location <span style="font-size:0.72rem; color:#6b7280; font-weight:500;">(Helps delivery boy find you faster)</span></label>
-              <button type="button" id="btnGetLocation" onclick="getLiveLocation()" style="width:100%; margin-top:8px; padding:11px 16px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; border:none; border-radius:10px; font-size:0.88rem; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 4px 12px rgba(22,163,74,0.3); transition:all 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
-                📍 <span id="btnGetLocationText">Share My Exact Location</span>
-              </button>
+              <label style="color:#15803d; font-weight:700; font-size:0.88rem;">📍 Delivery Location <span style="font-size:0.72rem; color:#6b7280; font-weight:500;">(Helps delivery boy find your exact house)</span></label>
+              <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
+                <button type="button" id="btnChooseGoogleMap" onclick="openGoogleMapPickerModal()" style="flex:1; min-width:130px; padding:10px 12px; background:linear-gradient(135deg,#2563eb,#1d4ed8); color:#fff; border:none; border-radius:10px; font-size:0.82rem; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 3px 10px rgba(37,99,235,0.25); transition:all 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                  🗺️ Choose on Map
+                </button>
+                <button type="button" id="btnGetLocation" onclick="getLiveLocation()" style="flex:1; min-width:130px; padding:10px 12px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; border:none; border-radius:10px; font-size:0.82rem; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 3px 10px rgba(22,163,74,0.25); transition:all 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                  📍 <span id="btnGetLocationText">Detect My Live GPS</span>
+                </button>
+              </div>
               <div id="locationStatus" style="display:none; margin-top:10px; padding:8px 12px; border-radius:8px; font-size:0.8rem; font-weight:600;"></div>
               <div id="locationPreview" style="display:none; margin-top:10px;">
                 <iframe id="locationMapEmbed" style="width:100%; height:200px; border:0; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.12);" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
@@ -1086,6 +1103,65 @@
       <div class="order-history-section" style="flex:1.4; padding:24px; overflow-y:auto; background:#fafbfa;">
         <h3>My Orders</h3>
         <div class="orders-list" id="orderHistoryList" style="display:flex; flex-direction:column; gap:12px; margin-top:12px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GOOGLE MAP PICKER MODAL -->
+<div class="modal-overlay" id="googleMapPickerModal" style="z-index:1060;">
+  <div class="modal-container" style="max-width:640px; width:92%; max-height:90vh; display:flex; flex-direction:column; padding:20px; border-radius:16px;">
+    <button class="close-modal" onclick="closeGoogleMapPickerModal()">&times;</button>
+    <h3 style="font-family:'Playfair Display',serif; font-size:1.3rem; color:var(--green-dark); margin-bottom:6px; display:flex; align-items:center; gap:8px;">
+      🗺️ Choose Delivery Location on Google Map
+    </h3>
+    <p style="font-size:0.8rem; color:var(--muted); margin-bottom:12px;">Search your address or drag/click the marker on the map to select your house location.</p>
+
+    <div style="margin-bottom:10px;">
+      <input type="text" id="mapSearchInput" placeholder="🔍 Search street, locality, or landmark in Chakdaha..." style="width:100%; padding:10px 14px; border:1.5px solid var(--border); border-radius:10px; font-size:0.88rem; outline:none;" onkeypress="if(event.key==='Enter'){event.preventDefault();searchLocationOnMap();}">
+    </div>
+
+    <div id="googleMapCanvas" style="width:100%; height:320px; border-radius:12px; border:1.5px solid var(--border); background:#e2e8f0; position:relative; overflow:hidden;">
+      <div id="mapFallbackMessage" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center; color:#6b7280; font-size:0.85rem; padding:16px; pointer-events:none;">
+        ⏳ Loading Interactive Map...
+      </div>
+    </div>
+
+    <div id="mapSelectedAddressInfo" style="margin-top:12px; padding:10px 14px; background:#f0fdf4; border:1px solid #86efac; border-radius:10px; font-size:0.8rem; color:#15803d; font-weight:600;">
+      📍 Selected Location: <span id="mapSelectedText">Chakdaha (Default)</span>
+    </div>
+
+    <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
+      <button type="button" onclick="confirmGoogleMapSelection()" style="flex:1; min-width:140px; padding:12px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; border:none; border-radius:10px; font-weight:700; font-size:0.9rem; cursor:pointer; box-shadow:0 4px 12px rgba(22,163,74,0.3);">
+        ✅ Confirm Selected Location
+      </button>
+      <button type="button" onclick="getLiveLocation(); closeGoogleMapPickerModal();" style="padding:12px 16px; background:#eff6ff; color:#2563eb; border:1.5px solid #bfdbfe; border-radius:10px; font-weight:700; font-size:0.85rem; cursor:pointer;">
+        📡 Use GPS Instead
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- QR CODE SCANNER MODAL -->
+<div class="modal-overlay" id="qrScanModal" style="z-index:1070;">
+  <div class="modal-container" style="max-width:440px; width:90%; padding:20px; border-radius:16px; text-align:center;">
+    <button class="close-modal" onclick="closeQrScanModal()">&times;</button>
+    <h3 style="font-family:'Playfair Display',serif; font-size:1.3rem; color:var(--green-dark); margin-bottom:8px;">
+      📷 Scan Order QR Code
+    </h3>
+    <p style="font-size:0.8rem; color:var(--muted); margin-bottom:14px;">Point your phone camera at an Order QR code or enter Order ID manually.</p>
+
+    <div style="position:relative; width:100%; max-width:300px; height:220px; background:#000; margin:0 auto; border-radius:12px; overflow:hidden; border:2px solid var(--green);">
+      <video id="qrCameraVideo" style="width:100%; height:100%; object-fit:cover;" autoplay playsinline></video>
+      <div style="position:absolute; top:20%; left:20%; width:60%; height:60%; border:2px dashed #4ade80; border-radius:8px; pointer-events:none; box-shadow:0 0 0 9999px rgba(0,0,0,0.5);"></div>
+    </div>
+    <p id="qrScanStatus" style="font-size:0.8rem; font-weight:600; color:var(--green-dark); margin-top:10px;">Camera active. Align QR code inside box.</p>
+
+    <div style="margin-top:16px; border-top:1px dashed var(--border); padding-top:14px;">
+      <p style="font-size:0.78rem; color:var(--muted); margin-bottom:6px;">Or enter Order ID / Phone number manually:</p>
+      <div style="display:flex; gap:6px;">
+        <input type="text" id="manualQrInput" placeholder="e.g. CB-1234-5678 or 9883518860" style="flex:1; padding:8px 12px; border:1px solid var(--border); border-radius:8px; font-size:0.85rem;" onkeypress="if(event.key==='Enter'){processManualQrSubmit();}">
+        <button type="button" onclick="processManualQrSubmit()" style="padding:8px 14px; background:var(--green-dark); color:#fff; border:none; border-radius:8px; font-weight:700; cursor:pointer;">Open Order</button>
       </div>
     </div>
   </div>
@@ -3835,6 +3911,372 @@
   }
   // ══════════════════════════════════════════════════════════
 
+  // ══════════════════════════════════════════════════════════
+  // GOOGLE MAPS INTERACTIVE LOCATION PICKER
+  // ══════════════════════════════════════════════════════════
+  let leafletMapInstance = null;
+  let leafletMarkerInstance = null;
+  let googleMapInstance = null;
+  let googleMarkerInstance = null;
+  let tempSelectedLocation = null;
+
+  function openGoogleMapPickerModal() {
+    const modal = document.getElementById('googleMapPickerModal');
+    if (!modal) return;
+    modal.classList.add('active');
+    setTimeout(() => { initGoogleMapPicker(); }, 200);
+  }
+
+  function closeGoogleMapPickerModal() {
+    const modal = document.getElementById('googleMapPickerModal');
+    if (modal) modal.classList.remove('active');
+  }
+
+  function initGoogleMapPicker() {
+    const defaultLat = 23.0669;
+    const defaultLng = 88.5342;
+    const initialLat = parseFloat(document.getElementById('chkLat').value) || defaultLat;
+    const initialLng = parseFloat(document.getElementById('chkLng').value) || defaultLng;
+
+    tempSelectedLocation = {
+      lat: initialLat,
+      lng: initialLng,
+      address: document.getElementById('chkLocAddress').value || 'Chakdaha, Nadia, West Bengal'
+    };
+
+    updateMapSelectedAddressDisplay();
+
+    // Check if Google Maps JS API is loaded or API Key is available
+    if (window.google && window.google.maps) {
+      initGoogleNativeMap(initialLat, initialLng);
+      return;
+    }
+
+    if (window.GOOGLE_MAPS_API_KEY) {
+      loadGoogleMapsScript(() => {
+        initGoogleNativeMap(initialLat, initialLng);
+      });
+      return;
+    }
+
+    // Fallback: Leaflet / OpenStreetMap interactive map engine
+    initLeafletFallbackMap(initialLat, initialLng);
+  }
+
+  function loadGoogleMapsScript(callback) {
+    if (window.google && window.google.maps) { callback(); return; }
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${window.GOOGLE_MAPS_API_KEY}&libraries=places`;
+    script.async = true;
+    script.onload = callback;
+    script.onerror = () => {
+      console.warn("Google Maps script failed to load. Falling back to Leaflet map engine.");
+      initLeafletFallbackMap(23.0669, 88.5342);
+    };
+    document.head.appendChild(script);
+  }
+
+  function initGoogleNativeMap(lat, lng) {
+    const container = document.getElementById('googleMapCanvas');
+    const msg = document.getElementById('mapFallbackMessage');
+    if (msg) msg.style.display = 'none';
+
+    const latLng = { lat, lng };
+    googleMapInstance = new google.maps.Map(container, {
+      center: latLng,
+      zoom: 16,
+      mapTypeControl: true,
+      streetViewControl: false
+    });
+
+    googleMarkerInstance = new google.maps.Marker({
+      position: latLng,
+      map: googleMapInstance,
+      draggable: true,
+      title: "Drag me to your exact delivery location"
+    });
+
+    google.maps.event.addListener(googleMarkerInstance, 'dragend', function(evt) {
+      const newLat = evt.latLng.lat();
+      const newLng = evt.latLng.lng();
+      reverseGeocodeAndUpdate(newLat, newLng);
+    });
+
+    google.maps.event.addListener(googleMapInstance, 'click', function(evt) {
+      const newLat = evt.latLng.lat();
+      const newLng = evt.latLng.lng();
+      googleMarkerInstance.setPosition(evt.latLng);
+      reverseGeocodeAndUpdate(newLat, newLng);
+    });
+
+    // Attach Google Places Autocomplete if search input exists
+    const input = document.getElementById('mapSearchInput');
+    if (input && google.maps.places) {
+      const autocomplete = new google.maps.places.Autocomplete(input);
+      autocomplete.bindTo('bounds', googleMapInstance);
+      autocomplete.addListener('place_changed', function() {
+        const place = autocomplete.getPlace();
+        if (!place.geometry || !place.geometry.location) return;
+        googleMapInstance.setCenter(place.geometry.location);
+        googleMapInstance.setZoom(17);
+        googleMarkerInstance.setPosition(place.geometry.location);
+        reverseGeocodeAndUpdate(place.geometry.location.lat(), place.geometry.location.lng(), place.formatted_address || place.name);
+      });
+    }
+  }
+
+  function initLeafletFallbackMap(lat, lng) {
+    const container = document.getElementById('googleMapCanvas');
+    const msg = document.getElementById('mapFallbackMessage');
+    if (msg) msg.style.display = 'none';
+
+    if (leafletMapInstance) {
+      leafletMapInstance.remove();
+      leafletMapInstance = null;
+    }
+
+    leafletMapInstance = L.map(container).setView([lat, lng], 16);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap'
+    }).addTo(leafletMapInstance);
+
+    leafletMarkerInstance = L.marker([lat, lng], { draggable: true }).addTo(leafletMapInstance);
+
+    leafletMarkerInstance.on('dragend', function(e) {
+      const pos = e.target.getLatLng();
+      reverseGeocodeAndUpdate(pos.lat, pos.lng);
+    });
+
+    leafletMapInstance.on('click', function(e) {
+      leafletMarkerInstance.setLatLng(e.latlng);
+      reverseGeocodeAndUpdate(e.latlng.lat, e.latlng.lng);
+    });
+  }
+
+  async function reverseGeocodeAndUpdate(lat, lng, prefilledAddr) {
+    let addr = prefilledAddr || '';
+    if (!addr) {
+      try {
+        const resp = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=en`);
+        const data = await resp.json();
+        addr = data.display_name || '';
+      } catch(e) {
+        addr = `Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}`;
+      }
+    }
+    tempSelectedLocation = { lat, lng, address: addr };
+    updateMapSelectedAddressDisplay();
+  }
+
+  function updateMapSelectedAddressDisplay() {
+    const el = document.getElementById('mapSelectedText');
+    if (!el || !tempSelectedLocation) return;
+    el.innerHTML = `<strong>Lat:</strong> ${tempSelectedLocation.lat.toFixed(5)}, <strong>Lng:</strong> ${tempSelectedLocation.lng.toFixed(5)}<br><span style="color:#4b5563;">${tempSelectedLocation.address || 'Custom location selected'}</span>`;
+  }
+
+  function searchLocationOnMap() {
+    const query = document.getElementById('mapSearchInput').value.trim();
+    if (!query) return;
+
+    if (window.google && window.google.maps && googleMapInstance) {
+      const geocoder = new google.maps.Geocoder();
+      geocoder.geocode({ address: query + ', Chakdaha, West Bengal, India' }, function(results, status) {
+        if (status === 'OK' && results[0]) {
+          const loc = results[0].geometry.location;
+          googleMapInstance.setCenter(loc);
+          googleMapInstance.setZoom(17);
+          googleMarkerInstance.setPosition(loc);
+          reverseGeocodeAndUpdate(loc.lat(), loc.lng(), results[0].formatted_address);
+        } else {
+          fallbackOsmSearch(query);
+        }
+      });
+    } else {
+      fallbackOsmSearch(query);
+    }
+  }
+
+  async function fallbackOsmSearch(query) {
+    try {
+      const resp = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query + ', Chakdaha, West Bengal')}&format=json&limit=1`);
+      const data = await resp.json();
+      if (data && data.length > 0) {
+        const lat = parseFloat(data[0].lat);
+        const lng = parseFloat(data[0].lon);
+        if (leafletMapInstance) {
+          leafletMapInstance.setView([lat, lng], 17);
+          leafletMarkerInstance.setLatLng([lat, lng]);
+        }
+        reverseGeocodeAndUpdate(lat, lng, data[0].display_name);
+      } else {
+        alert("Location not found. Please click or drag the marker on the map to your location.");
+      }
+    } catch(e) {
+      alert("Search failed. Please select your pin position directly on the map.");
+    }
+  }
+
+  function confirmGoogleMapSelection() {
+    if (!tempSelectedLocation) return;
+    const { lat, lng, address } = tempSelectedLocation;
+    const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+    const navUrl  = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+    const embedUrl = `https://maps.google.com/maps?q=${lat},${lng}&z=17&output=embed`;
+
+    capturedLocation = { lat, lng, accuracy: 10, address, mapsUrl, navUrl };
+
+    document.getElementById('chkLat').value = lat;
+    document.getElementById('chkLng').value = lng;
+    document.getElementById('chkLocAccuracy').value = 10;
+    document.getElementById('chkLocAddress').value = address;
+    document.getElementById('locationMapEmbed').src = embedUrl;
+    document.getElementById('locationText').innerHTML =
+      `<strong>📍 Location Selected on Google Map!</strong><br><span style="color:#4b5563;">${address || 'Location saved.'}</span>`;
+    document.getElementById('locationOpenLink').href = mapsUrl;
+
+    const previewEl = document.getElementById('locationPreview');
+    if (previewEl) previewEl.style.display = 'block';
+    showLocationStatus('✅ Google Map Location confirmed!', '#f0fdf4', '#16a34a');
+
+    closeGoogleMapPickerModal();
+  }
+
+  // ══════════════════════════════════════════════════════════
+  //  QR CODE GENERATOR & QR SCANNER SYSTEM
+  // ══════════════════════════════════════════════════════════
+  function buildSingleOrderQrUrl(orderId) {
+    const base = window.STORE_URL || window.location.origin;
+    const data = `${base}/#order=${encodeURIComponent(orderId)}`;
+    const img  = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&margin=8&data=${encodeURIComponent(data)}`;
+    return { data, img };
+  }
+
+  function buildOrderDayQrUrl(phone, dateKey) {
+    const base = window.STORE_URL || window.location.origin;
+    const data = `${base}/#orderday=${encodeURIComponent(phone)}|${encodeURIComponent(dateKey)}`;
+    const img  = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&margin=8&data=${encodeURIComponent(data)}`;
+    return { data, img };
+  }
+
+  let qrMediaStream = null;
+
+  function openQrScanModal() {
+    const modal = document.getElementById('qrScanModal');
+    if (!modal) return;
+    modal.classList.add('active');
+    startCameraQrStream();
+  }
+
+  function closeQrScanModal() {
+    const modal = document.getElementById('qrScanModal');
+    if (modal) modal.classList.remove('active');
+    stopCameraQrStream();
+  }
+
+  async function startCameraQrStream() {
+    const video = document.getElementById('qrCameraVideo');
+    const status = document.getElementById('qrScanStatus');
+    if (!video) return;
+
+    try {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        qrMediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        video.srcObject = qrMediaStream;
+        if (status) status.textContent = "Camera active. Align QR code inside box.";
+      } else {
+        if (status) status.textContent = "Camera not accessible. Enter Order ID below.";
+      }
+    } catch(err) {
+      if (status) status.textContent = "Camera permission denied/unavailable. Enter Order ID below.";
+    }
+  }
+
+  function stopCameraQrStream() {
+    if (qrMediaStream) {
+      qrMediaStream.getTracks().forEach(track => track.stop());
+      qrMediaStream = null;
+    }
+  }
+
+  function processManualQrSubmit() {
+    const input = document.getElementById('manualQrInput').value.trim();
+    if (!input) return;
+    processQrCodeData(input);
+  }
+
+  async function processQrCodeData(scannedData) {
+    closeQrScanModal();
+    if (!scannedData) return;
+
+    let targetOrder = null;
+    const raw = scannedData.toString().trim();
+
+    // Check if it's orderday format
+    if (raw.includes('#orderday=') || raw.includes('/order-day/')) {
+      const part = raw.includes('#orderday=') ? raw.split('#orderday=')[1] : raw.split('/order-day/')[1];
+      const [phone, dateKey] = decodeURIComponent(part).split(part.includes('|') ? '|' : '/');
+      if (phone && dateKey) {
+        const orders = await dbAdapter.getOrders();
+        showDayOrdersModal(phone, dateKey, orders);
+        return;
+      }
+    }
+
+    // Extract Order ID (e.g. CB-xxxx-xxxx)
+    let orderId = raw;
+    if (raw.includes('#order=')) orderId = raw.split('#order=')[1];
+    else if (raw.includes('/order/')) orderId = raw.split('/order/')[1];
+    orderId = decodeURIComponent(orderId).trim();
+
+    const orders = await dbAdapter.getOrders();
+    const orderList = Array.isArray(orders) ? orders : (orders.orders || []);
+    targetOrder = orderList.find(o => o.orderId.toLowerCase() === orderId.toLowerCase() || o.orderId.toLowerCase().endsWith(orderId.toLowerCase()));
+
+    if (targetOrder) {
+      showInvoiceModal(targetOrder);
+    } else {
+      alert(`Order "${orderId}" not found in system.`);
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // UNIVERSAL ROUTER FOR SCANNED QR CODES & DEEP LINKS
+  // ══════════════════════════════════════════════════════════
+  async function checkOrderAndDayHash() {
+    const hash = window.location.hash || '';
+    const path = window.location.pathname || '';
+
+    // Handle #order=CB-xxxx-xxxx or /order/CB-xxxx-xxxx
+    if (hash.startsWith('#order=') || path.startsWith('/order/')) {
+      const rawId = hash.startsWith('#order=') ? hash.replace('#order=', '') : path.replace('/order/', '');
+      const orderId = decodeURIComponent(rawId).trim();
+      if (orderId) {
+        const orders = await dbAdapter.getOrders();
+        const orderList = Array.isArray(orders) ? orders : (orders.orders || []);
+        const matched = orderList.find(o => o.orderId.toLowerCase() === orderId.toLowerCase());
+        if (matched) showInvoiceModal(matched);
+      }
+      return;
+    }
+
+    // Handle #orderday=phone|dateKey or /order-day/phone/dateKey
+    if (hash.startsWith('#orderday=') || path.startsWith('/order-day/')) {
+      const rawStr = hash.startsWith('#orderday=') ? hash.replace('#orderday=', '') : path.replace('/order-day/', '');
+      const parts = decodeURIComponent(rawStr).split(rawStr.includes('|') ? '|' : '/');
+      const phone = parts[0];
+      const dateKey = parts[1];
+      if (phone && dateKey) {
+        const orders = await dbAdapter.getOrders();
+        showDayOrdersModal(phone, dateKey, orders);
+      }
+    }
+  }
+
+  window.addEventListener('hashchange', checkOrderAndDayHash);
+  document.addEventListener('DOMContentLoaded', checkOrderAndDayHash);
+
+
   function applyDiscountCoupon() {
     const input = document.getElementById('chkCoupon').value.trim().toUpperCase();
     const msg = document.getElementById('couponStatusMsg');
@@ -4229,7 +4671,17 @@
             <a href="${order.liveLocation.navUrl}" target="_blank" style="padding:8px 14px; background:linear-gradient(135deg,#1d4ed8,#2563eb); color:#fff; border-radius:8px; text-decoration:none; font-weight:700; font-size:0.8rem; box-shadow:0 2px 8px rgba(37,99,235,0.3);">🚀 Navigate to Customer</a>
             <a href="${order.liveLocation.mapsUrl}" target="_blank" style="padding:8px 14px; background:#fff; color:#1d4ed8; border:1.5px solid #2563eb; border-radius:8px; text-decoration:none; font-weight:700; font-size:0.8rem;">🗺️ View on Map</a>
           </div>
-        </div>` : '<p style="font-size:0.74rem; color:#9ca3af; margin-top:6px;">📍 No live location shared by customer</p>'}
+        </div>` : `
+        <div style="margin-top:10px; padding:10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px;">
+          <p style="font-size:0.75rem; color:#64748b; margin:0 0 6px;">📍 GPS pin not set. Use address for navigation:</p>
+          <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((order.customerAddress||'') + ', ' + (order.customerArea||'') + ', Chakdaha')}" target="_blank" style="display:inline-flex; align-items:center; gap:6px; padding:6px 12px; background:#2563eb; color:#fff; border-radius:8px; text-decoration:none; font-size:0.76rem; font-weight:700;">
+            🚀 Search Address on Google Maps
+          </a>
+        </div>`}
+        <div style="margin-top:12px; text-align:center; padding:10px; background:#fff; border:1px dashed var(--border); border-radius:10px;">
+          <p style="font-size:0.75rem; font-weight:700; color:var(--muted); margin-bottom:6px;">Order QR Code (Scan to View)</p>
+          <img src="${buildSingleOrderQrUrl(order.orderId).img}" style="width:120px; height:120px; border-radius:8px; border:1px solid var(--border);" alt="Order QR Code">
+        </div>
       </div>
       
       <div style="margin-bottom: 18px;">
@@ -5241,10 +5693,14 @@
       const name  = o.customerName  || o.name  || 'Guest';
       const date  = o.date ? o.date.substring(0,20) : (o.timestamp ? new Date(o.timestamp).toLocaleString('en-IN') : '-');
 
+      const mapNavBtn = o.liveLocation ?
+        `<a href="${o.liveLocation.navUrl}" target="_blank" style="display:inline-flex; align-items:center; gap:4px; margin-top:4px; padding:3px 8px; background:linear-gradient(135deg,#1d4ed8,#2563eb); color:#fff; border-radius:6px; font-weight:700; font-size:0.68rem; text-decoration:none;">🚀 Navigate (GPS)</a>` :
+        `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((o.customerAddress||'') + ', ' + (o.customerArea||'') + ', Chakdaha')}" target="_blank" style="display:inline-flex; align-items:center; gap:4px; margin-top:4px; padding:3px 8px; background:#2563eb; color:#fff; border-radius:6px; font-weight:700; font-size:0.68rem; text-decoration:none;">🗺️ Maps Search</a>`;
+
       body.insertAdjacentHTML('beforeend', `
         <tr>
           <td><strong style="font-size:0.75rem;">${o.orderId}</strong></td>
-          <td><strong>${name}</strong><br><span style="font-size:0.7rem; color:var(--muted);">${phone}</span><br><span style="font-size:0.68rem; color:var(--muted);">${o.customerAddress || ''}</span></td>
+          <td><strong>${name}</strong><br><span style="font-size:0.7rem; color:var(--muted);">${phone}</span><br><span style="font-size:0.68rem; color:var(--muted);">${o.customerAddress || ''}</span><br>${mapNavBtn}</td>
           <td style="font-size:0.75rem;">${date}</td>
           <td>
             <strong style="color:var(--green-dark);">₹${total}</strong>

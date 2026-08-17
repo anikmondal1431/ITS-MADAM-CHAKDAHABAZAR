@@ -9,10 +9,11 @@ const http    = require('http');
 const Razorpay = require('razorpay');
 
 // ── Config ──────────────────────────────────────────────────────────────────
-const PORT       = process.env.PORT || 3000;
-const KEY_ID     = process.env.RAZORPAY_KEY_ID     || '';
-const KEY_SECRET = process.env.RAZORPAY_KEY_SECRET || '';
-const ADMIN_PASS = process.env.ADMIN_PASSWORD      || 'admin123';
+const PORT            = process.env.PORT || 3000;
+const KEY_ID          = process.env.RAZORPAY_KEY_ID        || '';
+const KEY_SECRET      = process.env.RAZORPAY_KEY_SECRET    || '';
+const ADMIN_PASS      = process.env.ADMIN_PASSWORD         || 'admin123';
+const GOOGLE_MAPS_KEY = process.env.GOOGLE_MAPS_API_KEY    || '';
 
 // ── Data helpers ─────────────────────────────────────────────────────────────
 const DATA_DIR = path.join(__dirname, 'data');
@@ -110,6 +111,10 @@ function serveHTML(res) {
     html = html.replace(
       /window\.RAZORPAY_KEY_ID\s*=\s*['"][^'"]*['"]/,
       `window.RAZORPAY_KEY_ID = '${KEY_ID}'`
+    );
+    html = html.replace(
+      /window\.GOOGLE_MAPS_API_KEY\s*=\s*['"][^'"]*['"]/,
+      `window.GOOGLE_MAPS_API_KEY = '${GOOGLE_MAPS_KEY}'`
     );
     if (ADMIN_PASS) {
       html = html.replace(

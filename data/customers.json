@@ -10,8 +10,25 @@
     "pincode": "741222",
     "latitude": 23.0805,
     "longitude": 88.5298,
-    "lastLogin": "2026-08-17T02:32:24.769Z",
-    "registeredAt": "2026-08-17T02:32:24.769Z",
+    "lastLogin": "2026-08-17T02:49:50.782Z",
+    "registeredAt": "2026-08-17T02:49:50.782Z",
     "status": "Active"
+  },
+  {
+    "name": "SANGITA BISWAS",
+    "phone": "7076954561",
+    "flatNo": "CHUADANGA PAYARABAGAN",
+    "streetName": "PEYABAGAN",
+    "pincode": "741223",
+    "landmark": "Netaji Subhash Road, Bara Bazar, Kolkata",
+    "latitude": 22.5787,
+    "longitude": 88.3495,
+    "address": "Flat CHUADANGA PAYARABAGAN, PEYABAGAN, Landmark: Netaji Subhash Road, Bara Bazar, Kolkata, PIN: 741223 [Coordinates: 22.57870, 88.34950]",
+    "email": "7076954561@guest.chakdahabazar.in",
+    "registeredAt": "2026-08-17T02:47:58.405Z",
+    "lastLogin": "2026-08-17T02:47:58.405Z",
+    "status": "Active",
+    "totalOrders": 1,
+    "lastOrderDate": "2026-08-17T02:48:34.703Z"
   }
 ]

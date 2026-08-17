@@ -1,1 +1,53 @@
-[]
+[
+  {
+    "orderId": "CB-4667-8976",
+    "date": "17/8/2026, 8:18:34 am",
+    "timestamp": "2026-08-17T02:48:34.669Z",
+    "customerName": "SANGITA BISWAS",
+    "customerPhone": "7076954561",
+    "customerEmail": "7076954561@guest.chakdahabazar.in",
+    "customerArea": "PEYABAGAN",
+    "customerAddress": "Flat CHUADANGA PAYARABAGAN, PEYABAGAN, Landmark: Netaji Subhash Road, Bara Bazar, Kolkata, PIN: 741223 [Coordinates: 22.57870, 88.34950]",
+    "customerLandmark": "Netaji Subhash Road, Bara Bazar, Kolkata",
+    "items": [
+      {
+        "productId": "p_1786934859237",
+        "productName": "bitter",
+        "name": "bitter",
+        "emoji": "📦",
+        "unit": "1 KG",
+        "label": "1 KG",
+        "price": 80,
+        "qty": 2,
+        "quantity": 2,
+        "subtotal": 160
+      }
+    ],
+    "subtotal": 160,
+    "discount": 0,
+    "delivery": 0,
+    "total": 160,
+    "totalAmount": 160,
+    "paymentMethod": "Cash on Delivery",
+    "paymentStatus": "Pending",
+    "deliveryStatus": "Pending",
+    "statusTimeline": [
+      {
+        "status": "Order Placed",
+        "time": "2026-08-17T02:48:34.669Z"
+      }
+    ],
+    "deliveryBoy": {
+      "name": "Raju Das",
+      "phone": "9883518860",
+      "vehicle": "Bicycle",
+      "photo": "🚲"
+    },
+    "partnerId": "",
+    "partnerName": "",
+    "coupon": "",
+    "razorpay_payment_id": "",
+    "razorpay_order_id": "",
+    "liveLocation": null
+  }
+]
