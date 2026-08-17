@@ -957,6 +957,27 @@
             <div class="form-group" id="chkCustomAreaGroup" style="display:none;"><label>Specify Locality *</label><input type="text" id="chkCustomArea" placeholder="e.g. Lalpur Colony"></div>
             <div class="form-group"><label>Full Address *</label><textarea id="chkAddress" required rows="2" placeholder="House, Road, Ward"></textarea></div>
             <div class="form-group"><label>Landmark</label><input type="text" id="chkLandmark" placeholder="Near Temple"></div>
+
+            <!-- ══ LIVE LOCATION ══ -->
+            <div class="form-group" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7); border:1.5px solid #86efac; border-radius:12px; padding:14px; margin-top:6px;">
+              <label style="color:#15803d; font-weight:700; font-size:0.88rem;">📍 Share Your Live Location <span style="font-size:0.72rem; color:#6b7280; font-weight:500;">(Helps delivery boy find you faster)</span></label>
+              <button type="button" id="btnGetLocation" onclick="getLiveLocation()" style="width:100%; margin-top:8px; padding:11px 16px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; border:none; border-radius:10px; font-size:0.88rem; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 4px 12px rgba(22,163,74,0.3); transition:all 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                📍 <span id="btnGetLocationText">Share My Exact Location</span>
+              </button>
+              <div id="locationStatus" style="display:none; margin-top:10px; padding:8px 12px; border-radius:8px; font-size:0.8rem; font-weight:600;"></div>
+              <div id="locationPreview" style="display:none; margin-top:10px;">
+                <iframe id="locationMapEmbed" style="width:100%; height:200px; border:0; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.12);" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                <p id="locationText" style="font-size:0.76rem; color:#374151; margin:8px 0 6px; line-height:1.5;"></p>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                  <a id="locationOpenLink" href="#" target="_blank" style="font-size:0.78rem; padding:6px 12px; background:#2563eb; color:#fff; border-radius:8px; text-decoration:none; font-weight:600;">🗺️ Open in Google Maps</a>
+                  <button type="button" onclick="clearLiveLocation()" style="font-size:0.78rem; padding:6px 12px; background:#fee2e2; color:#dc2626; border:none; border-radius:8px; cursor:pointer; font-weight:600;">❌ Remove Location</button>
+                </div>
+              </div>
+              <input type="hidden" id="chkLat" value="">
+              <input type="hidden" id="chkLng" value="">
+              <input type="hidden" id="chkLocAccuracy" value="">
+              <input type="hidden" id="chkLocAddress" value="">
+            </div>
           </div>
         </form>
       </div>
@@ -3718,6 +3739,101 @@
   let activeDiscountValue = 0;
   let activeDiscountType = 'percent';
   let appliedCouponCode = '';
+  let capturedLocation = null; // { lat, lng, accuracy, address, mapsUrl }
+
+  // ══════════════════════════════════════════════════════════
+  // LIVE LOCATION FUNCTIONS
+  // ══════════════════════════════════════════════════════════
+  async function getLiveLocation() {
+    const btn = document.getElementById('btnGetLocation');
+    const btnText = document.getElementById('btnGetLocationText');
+    const statusEl = document.getElementById('locationStatus');
+    const previewEl = document.getElementById('locationPreview');
+
+    if (!navigator.geolocation) {
+      showLocationStatus('❌ Geolocation is not supported by your browser.', '#fef2f2', '#dc2626');
+      return;
+    }
+
+    btn.disabled = true;
+    btnText.textContent = '⏳ Getting your location...';
+    btn.style.background = '#9ca3af';
+    showLocationStatus('📡 Fetching your GPS coordinates... Please allow location access.', '#eff6ff', '#2563eb');
+    previewEl.style.display = 'none';
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        const acc = Math.round(pos.coords.accuracy);
+
+        showLocationStatus('🔄 Got GPS signal! Loading map preview...', '#f0fdf4', '#16a34a');
+
+        // Reverse geocode using OpenStreetMap Nominatim (free, no API key)
+        let geoAddress = '';
+        try {
+          const resp = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=en`);
+          const data = await resp.json();
+          geoAddress = data.display_name || '';
+        } catch(e) { geoAddress = ''; }
+
+        const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+        const navUrl  = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+        const embedUrl = `https://maps.google.com/maps?q=${lat},${lng}&z=17&output=embed`;
+
+        capturedLocation = { lat, lng, accuracy: acc, address: geoAddress, mapsUrl, navUrl };
+
+        document.getElementById('chkLat').value = lat;
+        document.getElementById('chkLng').value = lng;
+        document.getElementById('chkLocAccuracy').value = acc;
+        document.getElementById('chkLocAddress').value = geoAddress;
+        document.getElementById('locationMapEmbed').src = embedUrl;
+        document.getElementById('locationText').innerHTML =
+          `<strong>📍 GPS Captured!</strong> Accuracy: ±${acc}m<br><span style="color:#6b7280;">${geoAddress || 'Location saved.'}</span>`;
+        document.getElementById('locationOpenLink').href = mapsUrl;
+
+        previewEl.style.display = 'block';
+        showLocationStatus('✅ Live location captured successfully!', '#f0fdf4', '#16a34a');
+
+        btn.disabled = false;
+        btnText.textContent = '✅ Location Captured – Update';
+        btn.style.background = 'linear-gradient(135deg,#16a34a,#15803d)';
+      },
+      (err) => {
+        btn.disabled = false;
+        btnText.textContent = '📍 Share My Exact Location';
+        btn.style.background = 'linear-gradient(135deg,#16a34a,#15803d)';
+        const msgs = {
+          1: '❌ Location access denied. Please allow location permission in your browser.',
+          2: '❌ Location unavailable. Please check your GPS/internet.',
+          3: '❌ Location request timed out. Please try again.'
+        };
+        showLocationStatus(msgs[err.code] || '❌ Could not get location.', '#fef2f2', '#dc2626');
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  }
+
+  function showLocationStatus(msg, bg, color) {
+    const el = document.getElementById('locationStatus');
+    el.style.display = 'block';
+    el.style.background = bg;
+    el.style.color = color;
+    el.innerHTML = msg;
+  }
+
+  function clearLiveLocation() {
+    capturedLocation = null;
+    document.getElementById('chkLat').value = '';
+    document.getElementById('chkLng').value = '';
+    document.getElementById('chkLocAccuracy').value = '';
+    document.getElementById('chkLocAddress').value = '';
+    document.getElementById('locationPreview').style.display = 'none';
+    document.getElementById('locationStatus').style.display = 'none';
+    document.getElementById('btnGetLocationText').textContent = '📍 Share My Exact Location';
+    document.getElementById('btnGetLocation').style.background = 'linear-gradient(135deg,#16a34a,#15803d)';
+  }
+  // ══════════════════════════════════════════════════════════
 
   function applyDiscountCoupon() {
     const input = document.getElementById('chkCoupon').value.trim().toUpperCase();
@@ -3979,7 +4095,16 @@
       partnerId: '', partnerName: '',
       coupon: appliedCouponCode || '',
       razorpay_payment_id: (razorpayDetails && razorpayDetails.razorpay_payment_id) || '',
-      razorpay_order_id: (razorpayDetails && razorpayDetails.razorpay_order_id) || ''
+      razorpay_order_id: (razorpayDetails && razorpayDetails.razorpay_order_id) || '',
+      liveLocation: capturedLocation ? {
+        lat:      capturedLocation.lat,
+        lng:      capturedLocation.lng,
+        accuracy: capturedLocation.accuracy,
+        address:  capturedLocation.address,
+        mapsUrl:  capturedLocation.mapsUrl,
+        navUrl:   capturedLocation.navUrl,
+        sharedAt: new Date().toISOString()
+      } : null
     };
 
     // Inventory Stock Decr
@@ -4095,6 +4220,16 @@
           📍 ${order.customerAddress}, ${order.customerArea}
           ${order.customerLandmark ? `<br><span style="color: var(--muted); font-style: italic; font-size: 0.8rem;">Landmark: ${order.customerLandmark}</span>` : ''}
         </p>
+        ${order.liveLocation ? `
+        <div style="margin-top:10px; padding:12px; background:linear-gradient(135deg,#f0fdf4,#dcfce7); border:1.5px solid #86efac; border-radius:10px;">
+          <p style="font-size:0.8rem; font-weight:700; color:#15803d; margin:0 0 8px;">📡 Live GPS Location Shared by Customer</p>
+          <p style="font-size:0.74rem; color:#374151; margin:0 0 8px;">🎯 Accuracy: ±${order.liveLocation.accuracy}m &nbsp;|&nbsp; 🕐 ${new Date(order.liveLocation.sharedAt).toLocaleString('en-IN',{timeZone:'Asia/Kolkata'})}</p>
+          ${order.liveLocation.address ? `<p style="font-size:0.72rem; color:#6b7280; margin:0 0 10px;">${order.liveLocation.address}</p>` : ''}
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <a href="${order.liveLocation.navUrl}" target="_blank" style="padding:8px 14px; background:linear-gradient(135deg,#1d4ed8,#2563eb); color:#fff; border-radius:8px; text-decoration:none; font-weight:700; font-size:0.8rem; box-shadow:0 2px 8px rgba(37,99,235,0.3);">🚀 Navigate to Customer</a>
+            <a href="${order.liveLocation.mapsUrl}" target="_blank" style="padding:8px 14px; background:#fff; color:#1d4ed8; border:1.5px solid #2563eb; border-radius:8px; text-decoration:none; font-weight:700; font-size:0.8rem;">🗺️ View on Map</a>
+          </div>
+        </div>` : '<p style="font-size:0.74rem; color:#9ca3af; margin-top:6px;">📍 No live location shared by customer</p>'}
       </div>
       
       <div style="margin-bottom: 18px;">
@@ -5244,6 +5379,7 @@
       const addressParts = [o.customerAddress, o.customerArea].filter(Boolean).join(', ');
       const landmarkLine = o.customerLandmark ? ` (Landmark: ${o.customerLandmark})` : '';
       const db = o.deliveryBoy || {};
+      const liveLocBtn = o.liveLocation ? `<a href="${o.liveLocation.navUrl}" target="_blank" style="display:inline-flex;align-items:center;gap:5px;margin-top:8px;padding:7px 13px;background:linear-gradient(135deg,#1d4ed8,#2563eb);color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:0.76rem;box-shadow:0 2px 8px rgba(37,99,235,0.25);">🚀 Navigate to Customer (GPS)</a>` : '';
       const subtotalAmt = o.subtotal != null ? o.subtotal : ((o.totalAmount || o.total || 0) - (o.delivery || 0) + (o.discount || 0));
       return `
         <div style="border:1px solid var(--border); border-radius:10px; padding:12px; margin-bottom:10px; background:#fff;">
@@ -5252,7 +5388,8 @@
             <span style="color:var(--green-dark);">₹${o.totalAmount || o.total}</span>
           </div>
           <p style="font-size:0.72rem; color:var(--muted); margin:4px 0 8px;">${dateLabel} · <strong style="color:var(--text);">${o.deliveryStatus || 'Pending'}</strong></p>
-          ${addressParts ? `<p style="font-size:0.76rem; color:#374151; margin:0 0 8px;">📍 ${addressParts}${landmarkLine}</p>` : ''}
+          ${addressParts ? `<p style="font-size:0.76rem; color:#374151; margin:0 0 4px;">📍 ${addressParts}${landmarkLine}</p>` : ''}
+          ${liveLocBtn}
           <div style="border-top:1px dashed var(--border); border-bottom:1px dashed var(--border); padding:6px 0; margin-bottom:8px;">
             ${itemsHTML}
           </div>
